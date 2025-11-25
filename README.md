@@ -130,23 +130,29 @@
       color: #0074d9;
     }
 
-    /* Carrello a pannello scorrevole */
+    /* Carrello a pannello scorrevole (parte da fuori schermo usando transform) */
     #cartSummary {
       position: fixed;
       top: 0;
-      right: -360px; /* nascosto inizialmente */
-      width: 350px;
-      height: 100%;
+      right: 0;
+      width: 360px;
+      max-width: 92%;
+      height: 100vh;
       background: #f9f9f9;
-      padding: 25px;
-      box-shadow: -6px 0 20px rgba(0,0,0,0.2);
+      padding: 22px;
+      box-shadow: -12px 0 30px rgba(0,0,0,0.22);
       border-radius: 12px 0 0 12px;
-      z-index: 1001;
+      z-index: 1102;
       overflow-y: auto;
-      transition: right 0.4s ease;
+      transform: translateX(100%); /* start off-screen */
+      transition: transform 360ms cubic-bezier(.2,.9,.2,1);
       font-family: Arial, sans-serif;
     }
-    #cartSummary.open { right: 0; }
+    #cartSummary.open { transform: translateX(0); }
+
+    /* overlay che copre il sito quando il carrello è aperto; cliccando chiude il carrello */
+    .cart-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 1100; }
+    .cart-overlay.open { display: block; }
     #cartSummary h3 {
       margin-top: 0;
       font-weight: 600;
@@ -375,6 +381,7 @@
   <div id="cartFeedback">Prodotto aggiunto al carrello!</div>
 
   <!-- Pannello carrello -->
+  <div id="cartOverlay" class="cart-overlay" aria-hidden="true"></div>
   <div id="cartSummary">
     <h3>
       Carrello
@@ -763,14 +770,27 @@
   }
 
   function toggleCart(open = null) {
-    if(open === true) cartSummary.classList.add('open');
-    else if(open === false) cartSummary.classList.remove('open');
-    else cartSummary.classList.toggle('open');
+    const overlay = document.getElementById('cartOverlay');
+    if (open === true) {
+      cartSummary.classList.add('open');
+      if (overlay) { overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); }
+    } else if (open === false) {
+      cartSummary.classList.remove('open');
+      if (overlay) { overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); }
+    } else {
+      cartSummary.classList.toggle('open');
+      if (overlay) { overlay.classList.toggle('open'); overlay.setAttribute('aria-hidden', overlay.classList.contains('open') ? 'false' : 'true'); }
+    }
     updateCartSummary();
   }
 
   cartIcon.addEventListener('click', () => toggleCart());
   document.getElementById('closeCart').addEventListener('click', () => toggleCart(false));
+  // overlay click closes cart
+  (function(){ const ov = document.getElementById('cartOverlay'); if (ov) ov.addEventListener('click', ()=> toggleCart(false));
+    // also close cart on ESC key
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { const cs = document.getElementById('cartSummary'); if (cs && cs.classList.contains('open')) toggleCart(false); } });
+  })();
 
   // Checkout: mostra modal con metodi di pagamento
   const checkoutBtn = document.getElementById('checkoutBtn');
